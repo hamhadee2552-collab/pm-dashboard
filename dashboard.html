@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Pink Sensor Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(120deg, #ffe0ec, #ffd6e7);
+  color: #444;
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 40px;
+}
+
+h1 {
+  text-align: center;
+  color: #d63384;
+  margin-bottom: 30px;
+}
+
+.cards {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: rgba(255,255,255,0.8);
+  border-radius: 25px;
+  padding: 20px 40px;
+  text-align: center;
+  width: 25%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #d63384;
+}
+
+.card .value {
+  font-size: 48px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.chart-box {
+  background: rgba(255,255,255,0.95);
+  border-radius: 30px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  height: 500px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌸 Real-time Sensor Dashboard</h1>
+
+  <div class="cards">
+    <div class="card">
+      <h2>PM B</h2>
+      <div class="value" id="b">-</div>
+    </div>
+    <div class="card">
+      <h2>PM C</h2>
+      <div class="value" id="c">-</div>
+    </div>
+    <div class="card">
+      <h2>PM D</h2>
+      <div class="value" id="d">-</div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="myChart"></canvas>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "14MnFUZLcxwUfZ8oAein2DVoTnHDzvrDeCQHl36-Enuw";
+const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+let chart;
+
+function loadData() {
+  fetch(url)
+    .then(r => r.text())
+    .then(t => {
+      const json = JSON.parse(t.substr(47).slice(0, -2));
+      const rows = json.table.rows;
+
+      // ===== ค่าล่าสุด =====
+      const last = rows[rows.length-1].c;
+      document.getElementById("b").innerText = last[1].v;
+      document.getElementById("c").innerText = last[2].v;
+      document.getElementById("d").innerText = last[3].v;
+
+      // ===== 5 แถวล่าสุด =====
+      const last5 = rows.slice(-5);
+      const labels = last5.map(r => r.c[0].v);
+      const dataB = last5.map(r => r.c[1].v);
+      const dataC = last5.map(r => r.c[2].v);
+      const dataD = last5.map(r => r.c[3].v);
+
+      drawChart(labels, dataB, dataC, dataD);
+    });
+}
+
+function drawChart(labels, b, c, d) {
+  const ctx = document.getElementById('myChart');
+  if (chart) chart.destroy();
+
+  const maxVal = Math.max(...b, ...c, ...d);
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'B', data: b, borderColor: '#ff5c8a', tension: 0.4, fill: false, borderWidth: 3 },
+        { label: 'C', data: c, borderColor: '#845ec2', tension: 0.4, fill: false, borderWidth: 3 },
+        { label: 'D', data: d, borderColor: '#00c9a7', tension: 0.4, fill: false, borderWidth: 3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: 20 },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 5 },
+          suggestedMax: maxVal + 10
+        }
+      }
+    }
+  });
+}
+
+loadData();
+setInterval(loadData, 10000); // รีเฟรชทุก 10 วิ
+</script>
+
+</body>
+</html>
